@@ -1,5 +1,8 @@
 package br.com.screamer.opengl3initialrancoon.shader;
 
+import static android.opengl.GLES20.glDeleteProgram;
+import static android.opengl.GLES20.glDeleteShader;
+import static android.opengl.GLES20.glDetachShader;
 import static android.opengl.GLES20.glGetShaderInfoLog;
 import static android.opengl.GLES20.glGetUniformLocation;
 import static android.opengl.GLES20.glUniform1f;
@@ -37,9 +40,12 @@ import java.nio.FloatBuffer;
 
 public abstract class AbstractShader {
 
+    private static final String TAG = "AbstractShader";
+
     private static int mProgramID;
 
-    private static final String TAG = "AbstractShader";
+    private static int mVertexID;
+    private static int mFragmentID;
 
     //construtores
     public AbstractShader(String vertex, String fragment) {
@@ -52,7 +58,6 @@ public abstract class AbstractShader {
         mProgramID = createProgram(context, vertexResource, fragmentResource);
     }
 
-    protected abstract void bindAttributes();
 
     protected void bindAttribute(int attribute, String handleName){
 
@@ -64,17 +69,25 @@ public abstract class AbstractShader {
      * */
     private int createProgram(String vertexResource, String fragmentResource){
 
-        mProgramID = glCreateProgram();
         Log.i(TAG, "createProgram: "+mProgramID);
+        mProgramID = glCreateProgram();
 
-        int vertexID = loadShader(GL_VERTEX_SHADER, vertexResource);
-        int fragmentID = loadShader(GL_FRAGMENT_SHADER, fragmentResource);
+        Log.i(TAG, "createProgram: loading vertexShader...");
+        mVertexID = loadShader(GL_VERTEX_SHADER, vertexResource);
 
-        glAttachShader(mProgramID, vertexID);
-        glAttachShader(mProgramID, fragmentID);
+        Log.i(TAG, "createProgram: loading fragmentShader...");
+        mFragmentID = loadShader(GL_FRAGMENT_SHADER, fragmentResource);
 
+        Log.i(TAG, "createProgram: attaching shader...");
+        glAttachShader(mProgramID, mVertexID);
+
+        Log.i(TAG, "createProgram: attaching shader...");
+        glAttachShader(mProgramID, mFragmentID);
+
+        Log.i(TAG, "createProgram: binding attributes...");
         bindAttributes();
 
+        Log.i(TAG, "createProgram: linking shaders...");
         glLinkProgram(mProgramID);
 
         final int[] linkStatus = new int[1];
@@ -89,6 +102,7 @@ public abstract class AbstractShader {
         Log.v(TAG, "Results of validating program: " + validateStatus[0]
                 + "\nLog:" + glGetProgramInfoLog(mProgramID));
 
+        Log.v(TAG, "createProgram: loading attributes");
         getAllUniformLocations();
 
         return mProgramID;
@@ -99,8 +113,8 @@ public abstract class AbstractShader {
      * */
     private int createProgram(Context c, int vertexResource, int fragmentResource){
 
-       String v = readFile(c, vertexResource);
-       String f = readFile(c, fragmentResource);
+       String v = readProgramFromResourceFile(c, vertexResource);
+       String f = readProgramFromResourceFile(c, fragmentResource);
        return createProgram(v, f);
     }
 
@@ -125,7 +139,7 @@ public abstract class AbstractShader {
      * */
     private static int loadShader(Context c, int type, int codeResource){
 
-        String strShader = readFile(c, codeResource);
+        String strShader = readProgramFromResourceFile(c, codeResource);
 
         return loadShader(type, strShader);
     }
@@ -147,35 +161,22 @@ public abstract class AbstractShader {
         return mProgramID;
     }
 
-    /*
-     * ultilitario para lêr arquivo
-     * */
-    public static String readFile(Context ctx, int rsrcId)
-    {
-        InputStream inputStream = ctx.getResources().openRawResource(rsrcId);
-        InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
-        BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+    public void deleteProgram(){
 
-        String nextLine;
-        StringBuilder body = new StringBuilder();
+        Log.i(TAG, "deleteProgram: detaching shaders...");
+        //desatacha os shaders
+        glDetachShader(0, mVertexID);
+        glDetachShader(0, mFragmentID);
 
-        try
-        {
-            while((nextLine = bufferedReader.readLine()) != null)
-            {
-                body.append(nextLine);
-                body.append('\n');
-            }
-        }
-        catch(IOException e)
-        {
-            return null;
-        }
+        Log.i(TAG, "deleteProgram: deletting shaders...");
+        //deleta shaders
+        glDeleteShader(mVertexID);
+        glDeleteShader(mFragmentID);
 
-        return body.toString();
+        Log.i(TAG, "deleteProgram: deletting program...");
+        //deleta program
+        glDeleteProgram(mProgramID);
     }
-
-    protected abstract void getAllUniformLocations();
 
     public int getUniformLocation(String handleLocation){
 
@@ -217,4 +218,37 @@ public abstract class AbstractShader {
 
         glUniform1ui(location, b? 1: 0);
     }
+
+    protected abstract void bindAttributes();
+
+    protected abstract void getAllUniformLocations();
+
+    /*
+     * ultilitario para lêr arquivo
+     * */
+    public static String readProgramFromResourceFile(Context ctx, int rsrcId)
+    {
+        InputStream inputStream = ctx.getResources().openRawResource(rsrcId);
+        InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
+        BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+
+        String nextLine;
+        StringBuilder body = new StringBuilder();
+
+        try
+        {
+            while((nextLine = bufferedReader.readLine()) != null)
+            {
+                body.append(nextLine);
+                body.append('\n');
+            }
+        }
+        catch(IOException e)
+        {
+            return null;
+        }
+
+        return body.toString();
+    }
+
 }

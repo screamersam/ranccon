@@ -1,11 +1,19 @@
 package br.com.screamer.opengl3initialrancoon.util;
 
-import static android.opengl.GLES30.*;
-
+import static android.opengl.GLES30.GL_ARRAY_BUFFER;
+import static android.opengl.GLES30.GL_ELEMENT_ARRAY_BUFFER;
+import static android.opengl.GLES30.GL_FLOAT;
+import static android.opengl.GLES30.GL_STATIC_DRAW;
+import static android.opengl.GLES30.glBindBuffer;
+import static android.opengl.GLES30.glBindVertexArray;
+import static android.opengl.GLES30.glBufferData;
+import static android.opengl.GLES30.glDeleteBuffers;
+import static android.opengl.GLES30.glDeleteVertexArrays;
+import static android.opengl.GLES30.glGenBuffers;
+import static android.opengl.GLES30.glGenVertexArrays;
+import static android.opengl.GLES30.glVertexAttribPointer;
 import static br.com.screamer.opengl3initialrancoon.util.UtilMenManager.getIntBuffer;
 import static br.com.screamer.opengl3initialrancoon.util.UtilMenManager.getShortBuffer;
-
-import android.graphics.Bitmap;
 
 import java.io.Serializable;
 import java.nio.FloatBuffer;
@@ -14,56 +22,35 @@ import java.nio.ShortBuffer;
 import java.util.HashMap;
 
 import br.com.screamer.opengl3initialrancoon.model.RawModel;
-import br.com.screamer.opengl3initialrancoon.model.TexturedModel;
-import br.com.screamer.opengl3initialrancoon.texture.TextureManager;
 
 /*
-* classe gerenciadora de objetos
+* classe gerenciadora de objetos coloridos
 *
 **/
+public class LoadColoredObject implements Serializable {
 
-public class LoaderManagerObject implements Serializable {
+    private HashMap<String, MapArrayObj> vaoList =  new HashMap<>();
 
-    private static HashMap<String, int[]> vaoList =  new HashMap<>();
-    private static HashMap<String, int[]> vboList =  new HashMap<>();
-    private static HashMap<String, int[]> eboList =  new HashMap<>();
+    private MapArrayObj selected;
 
     private static int numberVAO = 0;
-    private static int numberVBO = 0;
-    private static int numberEBO = 0;
 
     //salvar e recuperar instancias
-    public LoaderManagerObject() {
+    public LoadColoredObject() {
 
     }
 
     private int[] createVAO(){
 
+        String name = "vbo"+numberVAO++;
+        selected = new MapArrayObj(name);
+
         int[] vaoID = new int[1];
         glGenVertexArrays(1, vaoID, 0);
-        vaoList.put("vbo"+numberVAO++, vaoID);
+        vaoList.put(name, selected);
         glBindVertexArray(vaoID[0]);
+        selected.setVAO(vaoID);
         return vaoID;
-    }
-
-    //pouca aplicação
-    //raw model 3D indexed
-    public RawModel loadRawModel3D(short[] indices, float[] data){
-
-        int[] vaoID = createVAO();
-        storeIndices(indices);
-        storeDataAttribList(0, 3, data);
-        return new RawModel(vaoID, indices.length); //objeto 3D
-    }
-
-    //pouca aplicação
-    //raw model 3D indexed RGB
-    public RawModel loadRawModel3D(int[] indices, float[] data){
-
-        int[] vaoID = createVAO();
-        storeIndices(indices);
-        storeDataAttribList(0, 3, data);
-        return new RawModel(vaoID, indices.length); //objeto 3D
     }
 
     //rawmodel colored 2D RGB
@@ -86,61 +73,13 @@ public class LoaderManagerObject implements Serializable {
         return new RawModel(vaoID, indices.length); //objeto 3D
     }
 
-    //texturedModel 2D
-    public TexturedModel loadTexturedModel(short[] indices, float[] positions, float[] texturePositions, Bitmap bitmap) {
-
-        TextureManager texture = new TextureManager();
-
-        RawModel rawModel = loadRawModel3D(indices, positions);
-
-        storeDataAttribList(1, 2, texturePositions);
-
-        TextureManager.loadTextureToOpenGL(texture.getTextureId("texture_0"), bitmap);
-
-        TexturedModel tm = new TexturedModel(rawModel, texture);
-        //tm.getEntity().position = new float[]{0, 0, -35};
-        //tm.getEntity().scale = new float[]{.9f, .9f, .9f};
-        return tm;
-    }
-
-    //texturedModel 2D
-    public TexturedModel loadTexturedModel(int[] indices, float[] positions, float[] texturePositions, Bitmap bitmap) {
-
-        TextureManager texture = new TextureManager();
-
-        RawModel rawModel = loadRawModel3D(indices, positions);
-        storeDataAttribList(1, 2, texturePositions);
-
-        TextureManager.loadTextureToOpenGL(texture.getTextureId("texture_0"), bitmap);
-
-        TexturedModel tm = new TexturedModel(rawModel, texture);
-        //tm.getEntity().position = new float[]{0, 0, -35};
-        //tm.getEntity().scale = new float[]{.9f, .9f, .9f};
-        return tm;
-    }
-
-    //texturedModel 3D
-    public TexturedModel loadTexturedModel(int[] indices, float[] positions, float[] texturePositions, float[] normals, Bitmap bitmap) {
-
-        TextureManager texture = new TextureManager();
-
-        RawModel rawModel = loadRawModel3D(indices, positions);
-        storeDataAttribList(1, 2, texturePositions);
-        storeDataAttribList(2, 3, normals);
-
-        TextureManager.loadTextureToOpenGL(texture.getTextureId("texture_0"), bitmap);
-
-        TexturedModel tm = new TexturedModel(rawModel, texture);
-        return tm;
-    }
-
     //attributo
     private void storeDataAttribList(int attribNumber, int elementsSize, float[] data){
 
         int[] arrayBufferID = new int[1];
         glGenBuffers(1, arrayBufferID, 0);
 
-        vboList.put("vbo"+numberVBO++, arrayBufferID);
+        selected.getVBOs().add(arrayBufferID);
 
         glBindBuffer(GL_ARRAY_BUFFER, arrayBufferID[0]);
         glBufferData(GL_ARRAY_BUFFER, data.length * Float.BYTES, UtilMenManager.getFloatBuffer(data), GL_STATIC_DRAW);
@@ -154,7 +93,7 @@ public class LoaderManagerObject implements Serializable {
         int[] arrayBufferID = new int[1];
         glGenBuffers(1, arrayBufferID, 0);
 
-        vboList.put("vbo"+numberVBO++, arrayBufferID);
+        selected.getVBOs().add(arrayBufferID);
 
         glBindBuffer(GL_ARRAY_BUFFER, arrayBufferID[0]);
         glBufferData(GL_ARRAY_BUFFER, data.limit() * Float.BYTES, data, GL_STATIC_DRAW);
@@ -168,7 +107,7 @@ public class LoaderManagerObject implements Serializable {
         int[] arrayBufferID = new int[1];
         glGenBuffers(1, arrayBufferID, 0);
 
-        vboList.put("vbo"+numberVBO++, arrayBufferID);
+        selected.getVBOs().add(arrayBufferID);
 
         glBindBuffer(GL_ARRAY_BUFFER, arrayBufferID[0]);
         glBufferData(GL_ARRAY_BUFFER, data.length * Float.BYTES, UtilMenManager.getFloatBuffer(data), GL_STATIC_DRAW);
@@ -182,7 +121,7 @@ public class LoaderManagerObject implements Serializable {
         int[] arrayBufferID = new int[1];
         glGenBuffers(1, arrayBufferID, 0);
 
-        eboList.put("ebo"+numberEBO++, arrayBufferID);
+        selected.EBO = arrayBufferID;
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, arrayBufferID[0]);
         ShortBuffer sb = getShortBuffer(data);
@@ -196,7 +135,7 @@ public class LoaderManagerObject implements Serializable {
         int[] arrayBufferID = new int[1];
         glGenBuffers(1, arrayBufferID, 0);
 
-        eboList.put("ebo"+numberEBO++, arrayBufferID);
+        selected.EBO = arrayBufferID;
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, arrayBufferID[0]);
         IntBuffer ib = getIntBuffer(data);
@@ -211,4 +150,18 @@ public class LoaderManagerObject implements Serializable {
     public void load(){
 
     }
+
+    public void clear(){
+
+        vaoList.values().forEach(s->{
+            glDeleteBuffers(1, s.EBO, 0);
+            s.getVBOs().forEach(vbo->{
+
+                glDeleteBuffers(1, vbo, 0);
+            });
+            glDeleteVertexArrays(1, s.VAO,0);
+        });
+    }
+
+
 }

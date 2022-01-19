@@ -13,7 +13,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 
-import br.com.screamer.opengl3initialrancoon.model.TexturedModel;
+import br.com.screamer.opengl3initialrancoon.model.TriangleMesh3D;
 
 /*
 * classe com utilitarios de leitura
@@ -310,8 +310,10 @@ public class UtilReadFile {
         return new PTN(position, texture, normal);
     }
 
-    public static TexturedModel mount(LoaderManagerObject loaderManagerObject, Bitmap bitmap, ArrayList<PTN> lfs,
-                                      ArrayList<Float3> positions, ArrayList<Float2> textures, ArrayList<Float3> normals
+
+    //deve retornar um mesh
+    public static MapArrayObj mount(OpenGLTexturedObject loaderManagerObject, Bitmap bitmap, ArrayList<PTN> lfs,
+                                    ArrayList<Float3> positions, ArrayList<Float2> textures, ArrayList<Float3> normals
                              ){
 
         if(lfs.size() >= Integer.MAX_VALUE){
@@ -380,7 +382,80 @@ public class UtilReadFile {
             countElements++;
         }
 
-        return loaderManagerObject.loadTexturedModel(indices, iPositions, itextures, inormals, bitmap);
+        return loaderManagerObject.loadTexturedModel(indices, iPositions, itextures, inormals);
+    }
+
+    public static TriangleMesh3D getTriangleMesh3D(ArrayList<PTN> lfs,
+                                                   ArrayList<Float3> positions, ArrayList<Float2> textures, ArrayList<Float3> normals
+    ){
+
+        if(lfs.size() >= Integer.MAX_VALUE){
+            //erro indices muito grande
+            throw new RuntimeException("Erro, indices maior que short");
+        }
+
+        int[] indices = new int[lfs.size() * 3];
+        float[] iPositions = new float[lfs.size() * 3 * 3];
+        float[] itextures = new float[lfs.size() * 3 * 2];
+        float[] inormals = new float[lfs.size() * 3 * 3];
+
+        int countElements = 0;
+
+        for (PTN ptn: lfs){
+
+            indices[countElements * 3] = (int) (countElements * 3);
+            indices[countElements * 3 + 1] = (int) (countElements * 3 + 1);
+            indices[countElements * 3 + 2] = (int) (countElements * 3 + 2);
+
+            Float3 p1 = positions.get(ptn.position.v1 -1);
+            Float3 p2 = positions.get(ptn.position.v2 -1);
+            Float3 p3 = positions.get(ptn.position.v3 -1);
+
+            iPositions[countElements * 9] = p1.x;
+            iPositions[countElements * 9 +1] = p1.y;
+            iPositions[countElements * 9 +2] = p1.z;
+
+            iPositions[countElements * 9 +3] = p2.x;
+            iPositions[countElements * 9 +4] = p2.y;
+            iPositions[countElements * 9 +5] = p2.z;
+
+            iPositions[countElements * 9 +6] = p3.x;
+            iPositions[countElements * 9 +7] = p3.y;
+            iPositions[countElements * 9 +8] = p3.z;
+
+            Float2 t1 = textures.get(ptn.texture.v1 -1);
+            Float2 t2 = textures.get(ptn.texture.v2 -1);
+            Float2 t3 = textures.get(ptn.texture.v3 -1);
+
+            itextures[countElements * 6] = t1.x;
+            itextures[countElements * 6 +1] = 1- t1.y;;
+
+            itextures[countElements * 6 +2] = t2.x;
+            itextures[countElements * 6 +3] = 1- t2.y;;
+
+            itextures[countElements * 6 +4] = t3.x;
+            itextures[countElements * 6 +5] = 1- t3.y;;
+
+            Float3 n1 = normals.get(ptn.normal.v1 -1);
+            Float3 n2 = normals.get(ptn.normal.v2 -1);
+            Float3 n3 = normals.get(ptn.normal.v3 -1);
+
+            inormals[countElements * 9] = n1.x;
+            inormals[countElements * 9 +1] = n1.y;;
+            inormals[countElements * 9 +2] = n1.z;;
+
+            inormals[countElements * 9 +3] = n2.x;
+            inormals[countElements * 9 +4] = n2.y;;
+            inormals[countElements * 9 +5] = n2.z;;
+
+            inormals[countElements * 9 +6] = n3.x;
+            inormals[countElements * 9 +7] = n3.y;;
+            inormals[countElements * 9 +8] = n3.z;;
+
+            countElements++;
+        }
+
+        return new TriangleMesh3D(indices, iPositions, itextures, inormals);
     }
 
     public static class ShortFace extends Face{

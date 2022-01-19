@@ -8,18 +8,25 @@ import android.view.View;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
-import br.com.screamer.opengl3initialrancoon.model.MyModel3D;
-import br.com.screamer.opengl3initialrancoon.util.LoaderManagerObject;
+import br.com.screamer.opengl3initialrancoon.model.ModelManager;
+import br.com.screamer.opengl3initialrancoon.model.RenderTexturedModel3D;
+import br.com.screamer.opengl3initialrancoon.texture.TextureManager;
+import br.com.screamer.opengl3initialrancoon.util.OpenGLTexturedObject;
 import br.com.screamer.opengl3initialrancoon.util.UtilMath;
 
 public class MainActivity extends Activity implements GLSurfaceView.Renderer{
 
-    private GLSurfaceView glSurfaceView;
-
     private boolean renderSet = false;
 
-    private LoaderManagerObject loaderManagerObject = new LoaderManagerObject();
-    private MyModel3D mm3D;
+    private GLSurfaceView glSurfaceView;
+
+    private TextureManager textureManager;
+
+    private ModelManager modelManager;
+
+    private OpenGLTexturedObject loaderManagerObject = new OpenGLTexturedObject();
+
+    private RenderTexturedModel3D mm3D;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,12 +81,26 @@ public class MainActivity extends Activity implements GLSurfaceView.Renderer{
     @Override
     public void onSurfaceCreated(GL10 gl10, EGLConfig eglConfig) {
 
-        mm3D = new MyModel3D(getBaseContext(), loaderManagerObject, R.raw.bunny, R.drawable.bunny);
+        //criar metodo para nao sofrer aqui!
+        //carregar arquivo obj e retornar um AObj carregado no OpenGL
+        modelManager = new ModelManager(getBaseContext());
+
+        modelManager.newModel("bunny", R.raw.bunny);
+        //modelManager.newModel("bunny", R.raw.bunny, new Entity());
+        //modelManager.newModel("bunny", R.raw.bunny, new Entity(), new Camera(), new Light(), new StaticShader());
+        //modelManager.newModel("bunny", new RenderTexturedModel3D());
+
+        textureManager = new TextureManager();
+        textureManager.newTexture("bunny", TextureManager.loadBitmap(getBaseContext(), R.drawable.bunny));
+
+
+        mm3D = new RenderTexturedModel3D(getBaseContext(), modelManager.getModel("bunny"), textureManager.getTexture("bunny"));
+        //mm3D = new MyModel3D(getBaseContext(), loaderManagerObject, R.raw.bunny, R.drawable.bunny);
         //mm3D.getEntity().scale = new float[]{.1f, .1f, .1f};
-        mm3D.getEntity().scale = new float[]{1f, 1f, 1f};
+        mm3D.getEntity().scale = new float[]{.7f, .7f, .7f};
         mm3D.getEntity().position = new float[]{0f, -5f, -15f};
-        mm3D.getTexturedModel().setReflectivity(.1f);
-        mm3D.getTexturedModel().setShineDamper(.5f);
+        mm3D.getTexture().setReflectivity(.1f);
+        mm3D.getTexture().setShineDamper(.5f);
     }
 
     @Override
@@ -96,5 +117,6 @@ public class MainActivity extends Activity implements GLSurfaceView.Renderer{
     public void onDrawFrame(GL10 gl10) {
 
         mm3D.render();
+        mm3D.getEntity().increaseRotation(new float[]{0,.1f,0});
     }
 }
